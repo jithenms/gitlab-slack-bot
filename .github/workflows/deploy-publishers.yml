@@ -1,0 +1,44 @@
+name: Deploy Publisher Cloud Functions
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  deploy:
+    permissions:
+      contents: "read"
+      id-token: "write"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Google Auth
+        id: auth
+        uses: "google-github-actions/auth@v0.6.0"
+        with:
+          credentials_json: "${{ secrets.GCP_SERVICE_KEY }}"
+
+      - name: Deploy Merge Event Publisher
+        id: deploy-merge-publisher
+        uses: google-github-actions/deploy-cloud-functions@v0.10.1
+        with:
+          name: "publish-gitlab-merge-event"
+          runtime: go116
+          region: us-central1
+          source_dir: gitlab-event-publisher
+          entry_point: PublishMergeEvent
+          service_account_email: gitlab-merge-event-function@gitlab-events-bot.iam.gserviceaccount.com
+
+      - name: Deploy Tag Event Publisher
+        id: deploy-tag-publisher
+        uses: google-github-actions/deploy-cloud-functions@v0.10.1
+        with:
+          name: "publish-gitlab-tag-event"
+          runtime: go116
+          region: us-central1
+          source_dir: gitlab-event-publisher
+          entry_point: PublishTagEvent
+          service_account_email: gitlab-tag-event-publisher@gitlab-events-bot.iam.gserviceaccount.com

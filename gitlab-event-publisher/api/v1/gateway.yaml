@@ -1,0 +1,48 @@
+swagger: "2.0"
+info:
+  title: Gitlab Events API Gateway
+  description: "API Gateway to Ingest Gitlab Webhook Events"
+  version: "1.0.0"
+schemes:
+  - "https"
+produces:
+  - application/json
+consumes:
+  - application/json
+basePath: /api/event
+paths:
+  "/merge":
+    post:
+      description: "Gitlab Merge Event"
+      operationId: "merge"
+      x-google-backend:
+        address: https://us-central1-gitlab-events-bot.cloudfunctions.net/publish-gitlab-merge-event
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: "Publish Merge Event Function Success Response"
+          schema:
+            type: string
+        400:
+          description: "Publish Merge Event Function Failure Response"
+  "/tag":
+    post:
+      description: "Gitlab Tag Event"
+      operationId: "tag"
+      x-google-backend:
+        address: https://us-central1-gitlab-events-bot.cloudfunctions.net/publish-gitlab-tag-event
+      security:
+        - api_key: []
+      responses:
+        200:
+          description: "Publish Tag Event Function Success Response"
+          schema:
+            type: string
+        400:
+          description: "Publish Tag Event Function Failure Response"
+securityDefinitions:
+  api_key:
+    type: "apiKey"
+    name: "key"
+    in: "query"

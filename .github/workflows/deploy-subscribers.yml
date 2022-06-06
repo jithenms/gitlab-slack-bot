@@ -1,0 +1,54 @@
+name: Deploy Subscriber Cloud Functions
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  deploy:
+    permissions:
+      contents: "read"
+      id-token: "write"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Google Auth
+        id: auth
+        uses: "google-github-actions/auth@v0"
+        with:
+          credentials_json: "${{ secrets.GCP_SERVICE_KEY }}"
+
+      - name: Deploy Merge Event Subscriber
+        id: deploy-merge-subscriber
+        uses: google-github-actions/deploy-cloud-functions@v0.10.1
+        with:
+          name: "gitlab-merge-event-handler"
+          runtime: go116
+          region: us-central1
+          source_dir: gitlab-event-subscriber
+          env_vars: MERGE_CHANNEL_ID=C03J8981283,TAG_CHANNEL_ID=C03JCG6A53N
+          secret_environment_variables: "SLACK_TOKEN=projects/${{ secrets.GCP_PROJECT_ID }}/secrets/SLACK_GITLAB_BOT_TOKEN/versions/1,GITLAB_TOKEN=projects/${{ secrets.GCP_PROJECT_ID }}/secrets/GITLAB_TOKEN/versions/1"
+          entry_point: MergeEventHandler
+          service_account_email: gitlab-merge-handler-function@gitlab-events-bot.iam.gserviceaccount.com
+          event_trigger_type: google.pubsub.topic.publish
+          event_trigger_resource: projects/${{ secrets.GCP_PROJECT_ID }}/topics/gitlab-merge-event
+          event_trigger_service: pubsub.googleapis.com
+
+      - name: Deploy Tag Event Subscriber
+        id: deploy-tag-subscriber
+        uses: google-github-actions/deploy-cloud-functions@v0.10.1
+        with:
+          name: "gitlab-tag-event-handler"
+          runtime: go116
+          region: us-central1
+          source_dir: gitlab-event-subscriber
+          env_vars: MERGE_CHANNEL_ID=C03J8981283,TAG_CHANNEL_ID=C03JCG6A53N
+          secret_environment_variables: "SLACK_TOKEN=projects/${{ secrets.GCP_PROJECT_ID }}/secrets/SLACK_GITLAB_BOT_TOKEN/versions/1,GITLAB_TOKEN=projects/${{ secrets.GCP_PROJECT_ID }}/secrets/GITLAB_TOKEN/versions/1"
+          entry_point: TagEventHandler
+          service_account_email: gitlab-tag-handler-function@gitlab-events-bot.iam.gserviceaccount.com
+          event_trigger_type: google.pubsub.topic.publish
+          event_trigger_resource: projects/${{ secrets.GCP_PROJECT_ID }}/topics/gitlab-tag-event
+          event_trigger_service: pubsub.googleapis.com
